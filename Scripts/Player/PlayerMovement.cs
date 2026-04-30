@@ -11,7 +11,7 @@ public class PlayerMovement : MonoBehaviour
     {
         if (Time.timeScale > 0)
         {
-            // Movimiento constante
+            
             Vector3 forwardMove = transform.forward * forwardSpeed * Time.fixedDeltaTime;
             float horizontalInput = joystick.Horizontal;
             Vector3 sideMove = transform.right * horizontalInput * sideSpeed * Time.fixedDeltaTime;
@@ -20,7 +20,7 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
-    // SI CHOCAS DE FRENTE = GAME OVER
+    
     private void OnCollisionEnter(Collision collision)
     {
         if (collision.gameObject.CompareTag("Caja"))

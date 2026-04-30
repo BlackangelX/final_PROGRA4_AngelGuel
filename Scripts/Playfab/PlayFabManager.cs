@@ -8,24 +8,35 @@ public class PlayFabManager : MonoBehaviour
 {
     public static PlayFabManager instance;
 
-    [Header("Paneles")]
+    [Header("UI Paneles")]
     public GameObject loginPanel;
-    public GameObject registerPanel; // Asegúrate de arrastrar el panel de registro aquí
+    public GameObject registerPanel;
     public GameObject menuPrincipalPanel;
     public GameObject panelLeaderboard;
 
-    [Header("Inputs Login")]
+    [Header("Inputs")]
     public TMP_InputField logEmail;
     public TMP_InputField logPassword;
-
-    [Header("Inputs Registro")]
     public TMP_InputField regEmail;
     public TMP_InputField regPassword;
     public TMP_InputField regUsername;
 
-    private void Awake() { instance = this; }
+    [Header("Leaderboard UI")]
+    public GameObject filaPrefab;
+    public Transform contenedorFilas;
 
-    // --- LÓGICA DE REGISTRO ---
+    private void Awake()
+    {
+        if (instance == null) instance = this;
+    }
+
+    private void Start()
+    {
+        Time.timeScale = 0;
+        if (loginPanel != null) loginPanel.SetActive(true);
+    }
+
+    // --- REGISTRO Y LOGIN ---
     public void RegisterButton()
     {
         var request = new RegisterPlayFabUserRequest
@@ -35,16 +46,9 @@ public class PlayFabManager : MonoBehaviour
             Username = regUsername.text.Trim(),
             DisplayName = regUsername.text.Trim()
         };
-        PlayFabClientAPI.RegisterPlayFabUser(request, OnRegisterSuccess, OnError);
+        PlayFabClientAPI.RegisterPlayFabUser(request, r => OpenLogin(), OnError);
     }
 
-    void OnRegisterSuccess(RegisterPlayFabUserResult result)
-    {
-        Debug.Log("Usuario registrado con éxito");
-        OpenLogin(); // Regresamos al login para que entre
-    }
-
-    // --- LÓGICA DE LOGIN ---
     public void LoginButton()
     {
         var request = new LoginWithEmailAddressRequest
@@ -57,35 +61,43 @@ public class PlayFabManager : MonoBehaviour
 
     void OnLoginSuccess(LoginResult result)
     {
-        loginPanel.SetActive(false);
-        if (registerPanel != null) registerPanel.SetActive(false);
-        menuPrincipalPanel.SetActive(true);
+        Debug.Log("Login correcto.");
+        if (loginPanel != null) loginPanel.SetActive(false);
+        if (menuPrincipalPanel != null) menuPrincipalPanel.SetActive(true);
     }
 
-    // --- NAVEGACIÓN ENTRE PANELES ---
-    public void OpenRegister()
-    {
-        loginPanel.SetActive(false);
-        if (registerPanel != null) registerPanel.SetActive(true);
-    }
-
-    public void OpenLogin()
-    {
-        if (registerPanel != null) registerPanel.SetActive(false);
-        loginPanel.SetActive(true);
-    }
-
-    // --- MARCADORES ---
+    // --- LEADERBOARD LOGIC ---
     public void AbrirMarcadores()
     {
         if (panelLeaderboard != null) panelLeaderboard.SetActive(true);
+        GetLeaderboard();
     }
 
-    public void CerrarMarcadores()
+    public void GetLeaderboard()
     {
-        if (panelLeaderboard != null) panelLeaderboard.SetActive(false);
+        var request = new GetLeaderboardRequest
+        {
+            StatisticName = "Puntaje",
+            StartPosition = 0,
+            MaxResultsCount = 10
+        };
+        PlayFabClientAPI.GetLeaderboard(request, OnLeaderboardGet, OnError);
     }
 
+    void OnLeaderboardGet(GetLeaderboardResult result)
+    {
+        foreach (Transform item in contenedorFilas) Destroy(item.gameObject);
+
+        foreach (var item in result.Leaderboard)
+        {
+            GameObject nuevaFila = Instantiate(filaPrefab, contenedorFilas);
+            TMP_Text[] textos = nuevaFila.GetComponentsInChildren<TMP_Text>();
+            textos[0].text = (item.Position + 1) + ". " + item.DisplayName;
+            textos[1].text = item.StatValue.ToString();
+        }
+    }
+
+  
     public void SendLeaderboard(int score)
     {
         var request = new UpdatePlayerStatisticsRequest
@@ -97,5 +109,8 @@ public class PlayFabManager : MonoBehaviour
         PlayFabClientAPI.UpdatePlayerStatistics(request, r => Debug.Log("Puntos enviados"), OnError);
     }
 
-    void OnError(PlayFabError error) { Debug.LogError(error.GenerateErrorReport()); }
+    public void CerrarMarcadores() => panelLeaderboard.SetActive(false);
+    public void OpenRegister() { loginPanel.SetActive(false); registerPanel.SetActive(true); }
+    public void OpenLogin() { registerPanel.SetActive(false); loginPanel.SetActive(true); }
+    void OnError(PlayFabError error) => Debug.LogError(error.GenerateErrorReport());
 }

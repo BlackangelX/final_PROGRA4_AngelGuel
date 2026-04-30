@@ -9,10 +9,15 @@ public class WeatherManager : MonoBehaviour
     [Header("Configuracion de Luz")]
     [SerializeField] private Light sunLight;
 
+    [Header("Ajustes Visuales de Clima")]
+    public Color colorSoleado = new Color(1f, 0.9f, 0.7f);
+    public Color colorFrio = new Color(0.6f, 0.75f, 0.9f);
+    public float intensidadSol = 1.5f;
+    public float intensidadNubes = 0.6f;
+
     [Header("Datos del Clima Actual")]
     public WeatherData currentWeatherData;
 
-    // Tu lista de 10 ciudades
     private string[] ciudades = {
         "Monterrey", "Tokyo", "London", "New York", "Paris",
         "Seoul", "Madrid", "Cairo", "Sydney", "Berlin"
@@ -26,10 +31,7 @@ public class WeatherManager : MonoBehaviour
             if (lightObj != null) sunLight = lightObj.GetComponent<Light>();
         }
 
-   
         string ciudadElegida = ciudades[UnityEngine.Random.Range(0, ciudades.Length)];
-
-   
         StartCoroutine(GetWeather(ciudadElegida));
     }
 
@@ -58,7 +60,6 @@ public class WeatherManager : MonoBehaviour
         try
         {
             var data = JSON.Parse(json);
-
             currentWeatherData.city = cityName;
             currentWeatherData.temp = data["current_condition"][0]["temp_C"].AsFloat;
             currentWeatherData.desc = data["current_condition"][0]["weatherDesc"][0]["value"].Value;
@@ -77,18 +78,31 @@ public class WeatherManager : MonoBehaviour
     {
         if (sunLight == null) return;
 
-       
-        if (currentWeatherData.temp < 15 || currentWeatherData.desc.Contains("Cloud") || currentWeatherData.desc.Contains("Rain") || currentWeatherData.desc.Contains("Snow"))
+        string desc = currentWeatherData.desc.ToLower();
+
+        if (currentWeatherData.temp < 15 || desc.Contains("cloud") || desc.Contains("rain") || desc.Contains("snow") || desc.Contains("mist"))
         {
-            sunLight.color = new Color(0.6f, 0.75f, 0.9f); 
+            sunLight.color = colorFrio;
+            sunLight.intensity = intensidadNubes;
+
+           
             RenderSettings.fog = true;
-            RenderSettings.fogColor = new Color(0.75f, 0.75f, 0.75f);
+            RenderSettings.fogColor = colorFrio;
+            RenderSettings.fogDensity = 0.02f;
+
+           
+            RenderSettings.ambientLight = colorFrio;
         }
-        else 
+        else
         {
-            sunLight.color = new Color(1f, 0.9f, 0.7f); 
-            sunLight.intensity = 1.3f;
+            sunLight.color = colorSoleado;
+            sunLight.intensity = intensidadSol;
+
+            
             RenderSettings.fog = false;
+
+            
+            RenderSettings.ambientLight = colorSoleado;
         }
     }
 
